@@ -20,10 +20,26 @@ ESTADOS_CRITICOS = ["OBRA", "FIRMADA"]  # tiendas que aún no operan
 SCOREF_ALERTA = -3       # menor a esto = tienda en alerta
 SCOREF_OBSERVACION = 0   # de -3 a menos de 0 = requiere seguimiento
 SCOREF_BUENA = 3         # de 0 a 3 = tienda buena; mayor a 3 = mejor tienda
+SEGMENTOS_EXPANSION = {"EXP 2025", "EXP 2026"}
+SEGMENTO_MADURO = "TMCB"
 
 
-def clasificar_scoref(score) -> str:
+def agregar_indicadores_apertura(df_tiendas: pd.DataFrame) -> pd.DataFrame:
+    """Usa la segmentación TIE27 existente en BOOK; no recalcula antigüedad."""
+    df = df_tiendas.copy()
+    if "TIE27" in df.columns:
+        df["TIE27"] = df["TIE27"].astype("string").str.strip().str.upper()
+        df["es_tienda_nueva"] = df["TIE27"].isin(SEGMENTOS_EXPANSION)
+    else:
+        df["TIE27"] = pd.NA
+        df["es_tienda_nueva"] = False
+    return df
+
+
+def clasificar_scoref(score, es_tienda_nueva=False, tie27=None) -> str:
     """Clasifica el rendimiento de una tienda según SCOREF."""
+    if tie27 in SEGMENTOS_EXPANSION or es_tienda_nueva:
+        return f"{tie27} / expansión" if tie27 in SEGMENTOS_EXPANSION else "Expansión"
     if pd.isna(score):
         return "Sin SCOREF"
     if score > SCOREF_BUENA:
@@ -40,11 +56,15 @@ def alertas_scoref(df_tiendas: pd.DataFrame) -> pd.DataFrame:
     if "SCOREF" not in df_tiendas.columns:
         return pd.DataFrame(columns=["CR", "NAME", "PLAZA 2026", "SCOREF", "clasificacion", "motivo"])
     sub = df_tiendas[df_tiendas["SCOREF"] < SCOREF_ALERTA].copy()
-    sub["clasificacion"] = sub["SCOREF"].apply(clasificar_scoref)
+    if "TIE27" in sub.columns:
+        sub = sub[sub["TIE27"].eq(SEGMENTO_MADURO)]
+    elif "es_tienda_nueva" in sub.columns:
+        sub = sub[~sub["es_tienda_nueva"]]
+    sub["clasificacion"] = "En alerta"
     sub["motivo"] = sub["SCOREF"].apply(
         lambda v: f"SCOREF crítico ({v:.2f}), menor a {SCOREF_ALERTA}"
     )
-    cols = ["CR", "NAME", "PLAZA 2026", "ESTADO", "VENTAS OUM", "SCOREF", "clasificacion", "motivo"]
+    cols = ["CR", "NAME", "PLAZA 2026", "ESTADO", "TIE27", "Mesop", "FECHA APE", "VENTAS OUM", "SCOREF", "clasificacion", "motivo"]
     return sub[[c for c in cols if c in sub.columns]].sort_values("SCOREF")
 
 
