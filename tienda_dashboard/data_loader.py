@@ -137,7 +137,7 @@ def load_tiendas() -> pd.DataFrame:
         "AREA", "VT", "ET", "TRAFICO UM", "TRAFICO U6M", "TICKET UM",
         "TICKET U6M", "VENTAS OUM", "VENTAS OU6M", "CONTRIBUCION UM",
         "CONTRIBUCION U6M", "MARGEN UM", "MARGEN U6M", "RENTA UM",
-        "RENTA U6M", "%Batting", "SCOREF", "COSTO M2", "PTH",
+        "RENTA U6M", "%Batting", "SCOREF", "Mesop", "COSTO M2", "PTH",
     ]
     for col in numeric_cols:
         if col in df.columns:
